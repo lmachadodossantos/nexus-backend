@@ -4,6 +4,16 @@ import { logger } from 'hono/logger'
 import { cors } from 'hono/cors'
 import { auth } from './auth'
 import { generateChatResponse } from './ai';
+import { AccessToken } from 'livekit-server-sdk';
+import { config } from "dotenv";
+import path from "path";
+
+config({ path: path.resolve(process.cwd(), '.env.local') });
+
+interface TokenRequestBody {
+    roomName?: string;
+    participantIdentity?: string;
+}
 
 const app = new Hono()
 
@@ -30,18 +40,43 @@ app.post('/api/ai/chat', async (c) => {
     }
 
     const body = await c.req.json();
-    const { messages } = body;
+    const { messages, agent } = body;
 
     if (!messages || !Array.isArray(messages)) {
         return c.json({ error: "Formato de mensagens inválido" }, 400);
     }
 
     try {
-        const aiResponse = await generateChatResponse(messages);
+        const aiResponse = await generateChatResponse(messages, agent);
         return c.json({ message: aiResponse });
     } catch (error) {
         return c.json({ error: "Erro ao processar IA" }, 500);
     }
+});
+
+app.all('/api/live-kit/getToken', async (c) => {
+    let body: TokenRequestBody = {};
+    try {
+        body = await c.req.json<TokenRequestBody>();
+    } catch (e) {
+        console.warn("Body vazio ou inválido, usando padrões.");
+    }
+
+    const roomName = body.roomName || 'quickstart-room';
+
+    const participantIdentity = body.participantIdentity || `user_${Math.floor(Math.random() * 10000)}`;
+
+    const at = new AccessToken(process.env.LIVEKIT_API_KEY, process.env.LIVEKIT_API_SECRET, {
+        identity: participantIdentity,
+        ttl: '10m',
+    });
+
+    at.addGrant({ roomJoin: true, room: roomName });
+
+    return c.json({
+        serverURL: process.env.LIVEKIT_URL,
+        participantToken: await at.toJwt()
+    });
 });
 
 

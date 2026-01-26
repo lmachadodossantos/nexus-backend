@@ -17,6 +17,7 @@
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.45.1",
     "hono": "^4.11.4",
+    "livekit-server-sdk": "^2.15.0",
     "openai": "^6.16.0"
   },
   "devDependencies": {
