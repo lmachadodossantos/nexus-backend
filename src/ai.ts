@@ -12,23 +12,44 @@ const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
 
-const AGENT_PROMPTS: Record<string, string> = {
-    grammar: `Você é o "Grammar Mentor", um tutor especializado em ensinar inglês de forma clara e didática.
+interface AgentTools {
+    type: "function";
+    function: {
+        name: string;
+        description: string;
+        parameters: any;
+    };
+}
+
+interface AgentConfig {
+    prompt: string;
+    tools?: AgentTools[];
+}
+
+const AGENT_CONFIGS: Record<string, AgentConfig> = {
+    grammar: {
+        prompt: `Você é o "Grammar Mentor", um tutor especializado em ensinar inglês de forma clara e didática.
 - Explica gramática de forma simples, usando metáforas e exemplos
 - Usa emojis ocasionalmente (🕒, ⏳, ✅, ❌, 💡)
 - Responde em português, exemplos em inglês
-- Mantém respostas concisas (máximo 3-4 parágrafos)`,
+- Mantém respostas concisas (máximo 3-4 parágrafos)`
+    },
 
-    conversation: `Você é um professor de inglês nativo, paciente e encorajador chamado 'Coach'. 
-Seu objetivo é ajudar o aluno a praticar conversação. 
-Corrija erros sutilmente, mas priorize a fluência. 
-Mantenha as respostas curtas e engajadoras (máximo 2 frases).`,
+    conversation: {
+        prompt: `Você é um professor de inglês nativo, paciente e encorajador chamado 'Coach'.
+Seu objetivo é ajudar o aluno a praticar conversação.
+Corrija erros sutilmente, mas priorize a fluência.
+Mantenha as respostas curtas e engajadoras (máximo 2 frases).`
+    },
 
-    roleplay: `Você é um ator de roleplay para prática de inglês.
+    roleplay: {
+        prompt: `Você é um ator de roleplay para prática de inglês.
 Assuma personagens em cenários do dia a dia.
-Mantenha-se no personagem e use linguagem natural.`,
+Mantenha-se no personagem e use linguagem natural.`
+    },
 
-    literacy: `Você é um agente educacional infantil de ALFABETIZAÇÃO CRISTÃ.
+    literacy: {
+        prompt: `Você é um agente educacional infantil de ALFABETIZAÇÃO CRISTÃ.
 
 OBJETIVO
 Ensinar a criança a ler letra por letra, bem devagar, com carinho e contexto cristão.
@@ -91,19 +112,72 @@ A de Amor, que é cuidar das pessoas.
 Você conseguiu entender a letra A?”
 
 Você deve SEMPRE seguir esse estilo.
-`
+
+FERRAMENTAS DISPONÍVEIS:
+Quando explicar uma letra, você DEVE usar as ferramentas abaixo para enriquecer o aprendizado:
+- send_letter_gif: Para mostrar o GIF animado da letra
+- send_letter_audio: Para reproduzir o som da letra
+
+IMPORTANTE: Sempre que ensinar uma letra nova, chame essas duas funções para enviar o GIF e o áudio.
+`,
+        tools: [
+            {
+                type: "function",
+                function: {
+                    name: "send_letter_gif",
+                    description: "Envia um GIF animado da letra que está sendo ensinada para ser exibido no frontend",
+                    parameters: {
+                        type: "object",
+                        properties: {
+                            letter: {
+                                type: "string",
+                                description: "A letra em maiúscula que será mostrada (ex: 'A', 'B', 'C')"
+                            }
+                        },
+                        required: ["letter"]
+                    }
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "send_letter_audio",
+                    description: "Envia o áudio com o som da letra que está sendo ensinada para ser reproduzido no frontend",
+                    parameters: {
+                        type: "object",
+                        properties: {
+                            letter: {
+                                type: "string",
+                                description: "A letra em maiúscula cujo som será reproduzido (ex: 'A', 'B', 'C')"
+                            }
+                        },
+                        required: ["letter"]
+                    }
+                }
+            }
+        ]
+    }
 };
 
 export const generateChatResponse = async (messages: any[], agent: string = 'conversation') => {
     try {
-        const systemPrompt = AGENT_PROMPTS[agent] || AGENT_PROMPTS.conversation;
-        const completion = await openai.chat.completions.create({
+        const agentConfig = AGENT_CONFIGS[agent] || AGENT_CONFIGS.conversation;
+        const systemPrompt = agentConfig.prompt;
+
+        const completionParams: any = {
             model: "gpt-5-mini",
             messages: [
                 { role: "system", content: systemPrompt },
                 ...messages
             ],
-        });
+        };
+
+        if (agentConfig.tools && agentConfig.tools.length > 0) {
+            completionParams.tools = agentConfig.tools;
+            completionParams.tool_choice = "auto";
+        }
+
+        const completion = await openai.chat.completions.create(completionParams);
 
         return completion.choices[0].message;
     } catch (error) {

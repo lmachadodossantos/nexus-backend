@@ -1,11 +1,12 @@
-import { serve } from '@hono/node-server'
-import { Hono } from 'hono'
-import { logger } from 'hono/logger'
-import { cors } from 'hono/cors'
-import { auth } from './auth'
-import { generateChatResponse } from './ai';
-import { AccessToken } from 'livekit-server-sdk';
-import { config } from "dotenv";
+import {serve} from '@hono/node-server'
+import {Hono} from 'hono'
+import {logger} from 'hono/logger'
+import {cors} from 'hono/cors'
+import {auth} from './auth'
+import {generateChatResponse} from './ai';
+import {processLiteracyToolCalls} from './utils/letterResources';
+import {AccessToken} from 'livekit-server-sdk';
+import {config} from "dotenv";
 import path from "path";
 
 config({ path: path.resolve(process.cwd(), '.env.local') });
@@ -48,7 +49,16 @@ app.post('/api/ai/chat', async (c) => {
 
     try {
         const aiResponse = await generateChatResponse(messages, agent);
-        return c.json({ message: aiResponse });
+
+        const response: any = {
+            message: aiResponse
+        };
+
+        if (agent === 'literacy' && aiResponse.tool_calls && aiResponse.tool_calls.length > 0) {
+            response.resources = processLiteracyToolCalls(aiResponse.tool_calls);
+        }
+
+        return c.json(response);
     } catch (error) {
         return c.json({ error: "Erro ao processar IA" }, 500);
     }
