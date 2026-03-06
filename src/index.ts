@@ -1,10 +1,14 @@
+import { openai } from "./ai/openai";
+import { AGENT_CONFIGS } from "./ai/agents";
+import { aiChatRequestSchema, literacyAssistantPayloadSchema } from "./ai/literacy-schemas";
+import { buildLiteracyContext, buildLiteracyContextText, getNextLiteracyStep } from "./ai/literacy-context";
+import { literacyStructuredOutputFormat } from "./ai/literacy-output-format";
 import {serve} from '@hono/node-server'
+import {serveStatic} from '@hono/node-server/serve-static'
 import {Hono} from 'hono'
 import {logger} from 'hono/logger'
 import {cors} from 'hono/cors'
 import {auth} from './auth'
-import {generateChatResponse} from './ai';
-import {processLiteracyToolCalls} from './utils/letterResources';
 import {AccessToken} from 'livekit-server-sdk';
 import {config} from "dotenv";
 import path from "path";
@@ -18,6 +22,57 @@ interface TokenRequestBody {
 
 const app = new Hono()
 
+function sseEvent(event: string, data: unknown) {
+    return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+}
+
+function normalizeLetter(letter: string) {
+    return (letter || "").trim().toUpperCase().slice(0, 1);
+}
+
+function buildGifUrl(letter: string) {
+    return `/assets/letters/gifs/${letter}.gif`;
+}
+
+function buildAudioUrl(letter: string) {
+    return `/assets/letters/audios/${letter}.mp3`;
+}
+
+function safeJsonParse<T = any>(value: string): T | null {
+    try {
+        return JSON.parse(value);
+    } catch {
+        return null;
+    }
+}
+
+function extractFinalPayload(response: any, fallbackStep: any) {
+    const output = response.output || [];
+
+    for (const item of output) {
+        if (item.type === "message") {
+            for (const content of item.content || []) {
+                if (content.type === "output_text" && content.parsed) {
+                    const parsed = literacyAssistantPayloadSchema.safeParse(content.parsed);
+                    if (parsed.success) return parsed.data;
+                }
+                if (content.type === "output_text" && content.text) {
+                    const json = safeJsonParse(content.text);
+                    const parsed = literacyAssistantPayloadSchema.safeParse(json);
+                    if (parsed.success) return parsed.data;
+                }
+            }
+        }
+    }
+
+    return {
+        text: "Vamos aprender juntos. Você quer tentar mais uma vez?",
+        step: fallbackStep,
+        suggestedNextStep: getNextLiteracyStep(fallbackStep),
+        shouldRepeatCurrentStep: false
+    };
+}
+
 app.use('/*', cors({
     origin: (origin) => origin || '*',
     allowHeaders: ['Content-Type', 'Authorization', 'Upgrade-Insecure-Requests'],
@@ -27,6 +82,9 @@ app.use('/*', cors({
 }))
 
 app.use('*', logger())
+
+app.use('/assets/letters/audio/*', serveStatic({ root: './' }))
+app.use('/assets/letters/gifs/*', serveStatic({ root: './' }))
 
 app.get('/', (c) => c.json({ status: 'online', database: 'sqlite' }))
 
