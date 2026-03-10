@@ -1,8 +1,11 @@
-import { LITERACY_TOOLS, AgentTool } from "./literacy-tools";
+import type { ResponseCreateParams } from "openai/resources/responses/responses";
+import { LITERACY_TOOLS } from "./literacy-tools";
+
+export type ResponseTool = NonNullable<ResponseCreateParams["tools"]>[number];
 
 export interface AgentConfig {
     instructions: string;
-    tools?: AgentTool[];
+    tools?: ResponseTool[];
 }
 
 export const AGENT_CONFIGS: Record<string, AgentConfig> = {
