@@ -37,6 +37,76 @@ export class LiteracyMemoryService {
         };
     }
 
+    async getFullState(studentId: number) {
+        const state = await this.getOrCreateState(studentId);
+
+        const session = await this.sessionsRepo.findLastActiveByStudentId(studentId);
+
+        const currentLetter = state.progress.current_letter;
+
+        const letterProgress = await this.letterProgressRepo.findByStudentAndLetter(
+            studentId,
+            currentLetter
+        );
+
+        const sessionSummary = session
+            ? await this.sessionSummariesRepo.findBySessionId(session.id)
+            : null;
+
+        return {
+            studentId,
+            progress: {
+                currentLetter: state.progress.current_letter,
+                currentStep: state.progress.current_step,
+                biblicalReference: state.progress.biblical_reference,
+                gifSent: Boolean(state.progress.gif_sent),
+                audioSent: Boolean(state.progress.audio_sent),
+                progressSummary: state.progress.progress_summary,
+                difficultyNotes: state.progress.difficulty_notes,
+                lastTeacherMessage: state.progress.last_teacher_message,
+                lastStudentMessage: state.progress.last_student_message,
+                status: state.progress.status
+            },
+            session: session
+                ? {
+                    id: session.id,
+                    sessionUuid: session.session_uuid,
+                    status: session.status,
+                    startedAt: session.started_at,
+                    lastInteractionAt: session.last_interaction_at,
+                    summary: session.session_summary
+                }
+                : null,
+            currentLetterProgress: letterProgress
+                ? {
+                    letter: letterProgress.letter,
+                    status: letterProgress.status,
+                    currentStep: letterProgress.current_step,
+                    timesPracticed: letterProgress.times_practiced,
+                    correctAnswersCount: letterProgress.correct_answers_count,
+                    incorrectAnswersCount: letterProgress.incorrect_answers_count,
+                    teacherSummary: letterProgress.teacher_summary,
+                    difficultyNotes: letterProgress.difficulty_notes
+                }
+                : null,
+            sessionSummary: sessionSummary
+                ? {
+                    summaryText: sessionSummary.summary_text,
+                    strengths: sessionSummary.strengths,
+                    difficulties: sessionSummary.difficulties,
+                    recommendedNextStep: sessionSummary.recommended_next_step
+                }
+                : null,
+            recentMessages: state.recentMessages.map((message) => ({
+                role: message.role,
+                content: message.message_text,
+                step: message.step,
+                letter: message.letter,
+                createdAt: message.created_at
+            }))
+        };
+    }
+
     async startOrResumeSession(studentId: number) {
         const state = await this.getOrCreateState(studentId);
 

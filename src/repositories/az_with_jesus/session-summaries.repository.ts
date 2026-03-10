@@ -1,4 +1,5 @@
 import { pool } from "../../db/az_with_jesus/mysql";
+import {SessionSummaryRow} from "../../types/literacy";
 
 export class SessionSummariesRepository {
     async upsert(params: {
@@ -36,5 +37,20 @@ export class SessionSummariesRepository {
                 params.recommendedNextStep ?? null
             ]
         );
+    }
+
+    async findBySessionId(sessionId: number): Promise<SessionSummaryRow | null> {
+        const [rows] = await pool.query(
+            `
+      SELECT *
+      FROM session_summaries
+      WHERE session_id = ?
+      LIMIT 1
+      `,
+            [sessionId]
+        );
+
+        const data = rows as SessionSummaryRow[];
+        return data[0] || null;
     }
 }

@@ -24,6 +24,7 @@ import {AccessToken} from 'livekit-server-sdk';
 import {config} from "dotenv";
 import path from "path";
 import {generateChatResponse} from "./ai/general/agents";
+import {SessionsRepository} from "./repositories/az_with_jesus/sessions.repository";
 
 
 config({ path: path.resolve(process.cwd(), '.env.local') });
@@ -36,6 +37,7 @@ interface TokenRequestBody {
 const app = new Hono()
 
 const memoryService = new LiteracyMemoryService();
+const sessionsRepository = new SessionsRepository();
 
 function sseEvent(event: string, data: unknown) {
     return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
@@ -440,6 +442,51 @@ app.post("/api/ai/chat/az-with-jesus/stream", async (c) => {
             }
         }
     );
+});
+
+app.get("/api/ai/chat/az-with-jesus/state", async (c) => {
+    const session = await auth.api.getSession({ headers: c.req.header() });
+
+    if (!session) {
+        return c.json({ error: "Unauthorized" }, 401);
+    }
+
+    try {
+        const studentId = Number(session.user.id);
+
+        const state = await memoryService.getFullState(studentId);
+
+        return c.json(state);
+    } catch (error) {
+        console.error("Erro ao buscar estado de alfabetização:", error);
+        return c.json({ error: "Erro ao carregar estado de alfabetização" }, 500);
+    }
+});
+
+
+app.post("/api/ai/chat/az-with-jesus/finish", async (c) => {
+    const session = await auth.api.getSession({ headers: c.req.header() });
+
+    if (!session) {
+        return c.json({ error: "Unauthorized" }, 401);
+    }
+
+    try {
+        const body = await c.req.json();
+        const sessionId = Number(body.sessionId);
+        const summary = typeof body.summary === "string" ? body.summary : null;
+
+        if (!sessionId) {
+            return c.json({ error: "sessionId é obrigatório" }, 400);
+        }
+
+        await sessionsRepository.finish(sessionId, summary);
+
+        return c.json({ ok: true });
+    } catch (error) {
+        console.error("Erro ao finalizar sessão:", error);
+        return c.json({ error: "Erro ao finalizar sessão" }, 500);
+    }
 });
 
 app.all('/api/live-kit/getToken', async (c) => {
