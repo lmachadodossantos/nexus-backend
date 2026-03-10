@@ -1,4 +1,4 @@
-import { pool } from "../../db/mysql_az_with_jesus";
+import { pool } from "../../db/az_with_jesus/mysql";
 import mysql from "mysql2/promise";
 import { SessionRow } from "../../types/literacy";
 

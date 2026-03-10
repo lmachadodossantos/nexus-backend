@@ -1,5 +1,5 @@
 import mysql from "mysql2/promise";
-import { pool } from "../../db/mysql_az_with_jesus";
+import { pool } from "../../db/az_with_jesus/mysql";
 import { AttemptType, LiteracyStep } from "../../types/literacy";
 
 export class AttemptsRepository {

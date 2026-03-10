@@ -1,4 +1,4 @@
-import { pool } from "../../db/mysql_az_with_jesus";
+import { pool } from "../../db/az_with_jesus/mysql";
 
 export class SessionSummariesRepository {
     async upsert(params: {
