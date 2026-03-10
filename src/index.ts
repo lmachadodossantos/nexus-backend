@@ -1,17 +1,17 @@
 import { openai } from "./ai/openai";
 import type { ResponseInput } from "openai/resources/responses/responses";
-import { AGENT_CONFIGS } from "./ai/agents";
+import { AGENT_CONFIGS } from "./ai/az_with_jesus/agents";
 import {
     aiChatRequestSchema,
     literacyAssistantPayloadSchema,
     type LiteracyStep
-} from "./ai/literacy-schemas";
+} from "./ai/az_with_jesus/literacy-schemas";
 import {
     buildLiteracyContext,
     buildLiteracyContextText,
     getNextLiteracyStep
-} from "./ai/literacy-context";
-import { literacyStructuredOutputFormat } from "./ai/literacy-output-format";
+} from "./ai/az_with_jesus/literacy-context";
+import { literacyStructuredOutputFormat } from "./ai/az_with_jesus/literacy-output-format";
 import {LiteracyMemoryService} from "./services/az_with_jesus/memory.service";
 
 import {serve} from '@hono/node-server'
@@ -23,7 +23,7 @@ import {auth} from './auth'
 import {AccessToken} from 'livekit-server-sdk';
 import {config} from "dotenv";
 import path from "path";
-import {generateChatResponse} from "./ai";
+import {generateChatResponse} from "./ai/general/agents";
 
 
 config({ path: path.resolve(process.cwd(), '.env.local') });

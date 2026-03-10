@@ -1,16 +1,4 @@
-import OpenAI from "openai";
-import { config } from "dotenv";
-import path from "path";
-
-config({ path: path.resolve(process.cwd(), '.env.local') });
-
-if (!process.env.OPENAI_API_KEY) {
-    console.warn("⚠️ AVISO: OPENAI_API_KEY não encontrada no .env.local do servidor!");
-}
-
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+import { openai } from "../openai";
 
 interface AgentTools {
     type: "function";

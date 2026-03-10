@@ -6,7 +6,7 @@ import { LetterProgressRepository } from "../../repositories/az_with_jesus/lette
 import { AttemptsRepository } from "../../repositories/az_with_jesus/attempts.repository";
 import { SessionSummariesRepository } from "../../repositories/az_with_jesus/session-summaries.repository";
 import { LiteracyStep } from "../../types/literacy";
-import { getLetterConfig } from "../../ai/literacy-map";
+import { getLetterConfig } from "../../ai/az_with_jesus/literacy-map";
 
 export class LiteracyMemoryService {
     private progressRepo = new ProgressRepository();
