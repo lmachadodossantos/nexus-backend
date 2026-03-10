@@ -12,6 +12,7 @@ import {
     getNextLiteracyStep
 } from "./ai/literacy-context";
 import { literacyStructuredOutputFormat } from "./ai/literacy-output-format";
+import {LiteracyMemoryService} from "./services/az_with_jesus/memory.service";
 
 import {serve} from '@hono/node-server'
 import {serveStatic} from '@hono/node-server/serve-static'
@@ -22,6 +23,8 @@ import {auth} from './auth'
 import {AccessToken} from 'livekit-server-sdk';
 import {config} from "dotenv";
 import path from "path";
+import {generateChatResponse} from "./ai";
+
 
 config({ path: path.resolve(process.cwd(), '.env.local') });
 
@@ -32,6 +35,8 @@ interface TokenRequestBody {
 
 const app = new Hono()
 
+const memoryService = new LiteracyMemoryService();
+
 function sseEvent(event: string, data: unknown) {
     return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 }
@@ -41,11 +46,11 @@ function normalizeLetter(letter: string) {
 }
 
 function buildGifUrl(letter: string) {
-    return `/assets/letters/gifs/${letter}.gif`;
+    return `/assets/literacy/gifs/${letter}.gif`;
 }
 
 function buildAudioUrl(letter: string) {
-    return `/assets/letters/audios/${letter}.mp3`;
+    return `/assets/literacy/audios/${letter}.mp3`;
 }
 
 function safeJsonParse<T = unknown>(value: string): T | null {
@@ -64,10 +69,7 @@ type FinalLiteracyPayload = {
     encouragement?: string;
 };
 
-function extractFinalPayload(
-    response: unknown,
-    fallbackStep: LiteracyStep
-): FinalLiteracyPayload {
+function extractFinalPayload(response: unknown, fallbackStep: LiteracyStep): FinalLiteracyPayload {
     const fallback: FinalLiteracyPayload = {
         text: "Vamos aprender juntos. Você quer tentar mais uma vez?",
         step: fallbackStep,
@@ -80,6 +82,7 @@ function extractFinalPayload(
     }
 
     const maybeResponse = response as {
+        id?: string;
         output?: Array<{
             type?: string;
             content?: Array<{
@@ -149,12 +152,40 @@ app.on(['POST', 'GET'], '/api/auth/**', (c) => {
     return auth.handler(c.req.raw);
 });
 
-app.post("/api/ai/chat/stream", async (c) => {
+app.post('/api/ai/chat', async (c) => {
+    const session = await auth.api.getSession({ headers: c.req.header() });
+    if (!session) {
+        return c.json({ error: "Unauthorized" }, 401);
+    }
+
+    const body = await c.req.json();
+    const { messages, agent } = body;
+
+    if (!messages || !Array.isArray(messages)) {
+        return c.json({ error: "Formato de mensagens inválido" }, 400);
+    }
+
+    try {
+        const aiResponse = await generateChatResponse(messages, agent);
+
+        const response: any = {
+            message: aiResponse
+        };
+
+        return c.json(response);
+    } catch (error) {
+        return c.json({ error: "Erro ao processar IA" }, 500);
+    }
+});
+
+app.post("/api/ai/chat/az-with-jesus/stream", async (c) => {
     const session = await auth.api.getSession({ headers: c.req.header() });
 
     if (!session) {
         return c.json({ error: "Unauthorized" }, 401);
     }
+
+    const studentId = Number(session.user.id);
 
     const body = await c.req.json();
     const parsed = aiChatRequestSchema.safeParse(body);
@@ -172,6 +203,23 @@ app.post("/api/ai/chat/stream", async (c) => {
     const { messages, agent = "literacy", literacyContext } = parsed.data;
     const agentConfig = AGENT_CONFIGS[agent] || AGENT_CONFIGS.literacy;
 
+    const memory = await memoryService.startOrResumeSession(studentId);
+
+    const currentLetter = literacyContext?.letter || memory.progress.current_letter;
+    const currentStep = literacyContext?.currentStep || memory.progress.current_step;
+
+    const lastUserMessage = [...messages].reverse().find((m) => m.role === "user");
+
+    if (lastUserMessage?.content) {
+        await memoryService.saveStudentMessage({
+            sessionId: memory.session.id,
+            studentId,
+            letter: currentLetter,
+            step: currentStep,
+            content: lastUserMessage.content
+        });
+    }
+
     return new Response(
         new ReadableStream({
             async start(controller) {
@@ -182,7 +230,14 @@ app.post("/api/ai/chat/stream", async (c) => {
                 };
 
                 try {
-                    let fallbackStep: LiteracyStep = "abertura";
+                    let fallbackStep: LiteracyStep = currentStep as LiteracyStep;
+
+                    const runtimeContext = buildLiteracyContext({
+                        letter: currentLetter,
+                        currentStep: currentStep as LiteracyStep,
+                        gifSent: literacyContext?.gifSent ?? Boolean(memory.progress.gif_sent),
+                        audioSent: literacyContext?.audioSent ?? Boolean(memory.progress.audio_sent)
+                    });
 
                     const baseInput: Array<{
                         role: "developer" | "user" | "assistant";
@@ -191,18 +246,12 @@ app.post("/api/ai/chat/stream", async (c) => {
                         {
                             role: "developer",
                             content: [{ type: "input_text", text: agentConfig.instructions }]
+                        },
+                        {
+                            role: "developer",
+                            content: [{ type: "input_text", text: buildLiteracyContextText(runtimeContext) }]
                         }
                     ];
-
-                    if (agent === "literacy" && literacyContext?.letter) {
-                        const ctx = buildLiteracyContext(literacyContext);
-                        fallbackStep = ctx.currentStep;
-
-                        baseInput.push({
-                            role: "developer",
-                            content: [{ type: "input_text", text: buildLiteracyContextText(ctx) }]
-                        });
-                    }
 
                     for (const message of messages) {
                         baseInput.push({
@@ -214,6 +263,7 @@ app.post("/api/ai/chat/stream", async (c) => {
                     let previousResponseId: string | undefined = undefined;
                     let nextInput: ResponseInput = baseInput as ResponseInput;
                     let finalResponse: unknown = null;
+                    const collectedResources: Array<{ type: "gif" | "audio"; letter: string; url: string }> = [];
 
                     while (true) {
                         const pendingToolCalls: Array<{
@@ -228,10 +278,7 @@ app.post("/api/ai/chat/stream", async (c) => {
                             input: nextInput,
                             previous_response_id: previousResponseId,
                             tools: agentConfig.tools,
-                            text:
-                                agent === "literacy"
-                                    ? { format: literacyStructuredOutputFormat }
-                                    : undefined,
+                            text: agent === "literacy" ? { format: literacyStructuredOutputFormat } : undefined,
                             stream: true,
                             store: false
                         });
@@ -284,12 +331,8 @@ app.post("/api/ai/chat/stream", async (c) => {
                         }> = [];
 
                         for (const call of pendingToolCalls) {
-                            const args =
-                                safeJsonParse<{ letter?: string }>(call.arguments || "{}") || {};
-
-                            const letter = normalizeLetter(
-                                args.letter || literacyContext?.letter || "A"
-                            );
+                            const args = safeJsonParse<{ letter?: string }>(call.arguments || "{}") || {};
+                            const letter = normalizeLetter(args.letter || currentLetter);
 
                             if (call.name === "send_letter_gif") {
                                 const resource = {
@@ -298,6 +341,7 @@ app.post("/api/ai/chat/stream", async (c) => {
                                     url: buildGifUrl(letter)
                                 };
 
+                                collectedResources.push(resource);
                                 send("resource", resource);
 
                                 toolOutputs.push({
@@ -317,6 +361,7 @@ app.post("/api/ai/chat/stream", async (c) => {
                                     url: buildAudioUrl(letter)
                                 };
 
+                                collectedResources.push(resource);
                                 send("resource", resource);
 
                                 toolOutputs.push({
@@ -331,10 +376,48 @@ app.post("/api/ai/chat/stream", async (c) => {
                         }
 
                         previousResponseId = (finalResponse as { id: string }).id;
-                        nextInput = toolOutputs as ResponseInput;
+                        nextInput = toolOutputs;
                     }
 
                     const payload = extractFinalPayload(finalResponse, fallbackStep);
+                    const finalResponseId =
+                        finalResponse &&
+                        typeof finalResponse === "object" &&
+                        "id" in finalResponse &&
+                        typeof (finalResponse as { id?: unknown }).id === "string"
+                            ? (finalResponse as { id: string }).id
+                            : null;
+
+                    await memoryService.saveAssistantTurn({
+                        sessionId: memory.session.id,
+                        studentId,
+                        letter: currentLetter,
+                        step: payload.step,
+                        content: payload.text,
+                        structuredPayload: payload,
+                        resourcesPayload: collectedResources,
+                        openAIResponseId: finalResponseId,
+                        summary: `Aluno está na letra ${currentLetter}, etapa ${payload.step}.`,
+                        difficultyNotes: null,
+                        gifSent: collectedResources.some((r) => r.type === "gif"),
+                        audioSent: collectedResources.some((r) => r.type === "audio"),
+                        attempt: {
+                            attemptType: "free_response",
+                            promptText: memory.progress.last_teacher_message,
+                            studentAnswer: lastUserMessage?.content ?? null,
+                            expectedAnswer: null,
+                            isCorrect: null,
+                            score: null,
+                            difficultyTag: null,
+                            teacherFeedback: null
+                        },
+                        sessionSummary: {
+                            summaryText: `Sessão em andamento na letra ${currentLetter}, etapa ${payload.step}.`,
+                            strengths: null,
+                            difficulties: null,
+                            recommendedNextStep: payload.suggestedNextStep
+                        }
+                    });
 
                     send("final_payload", payload);
                     send("done", { ok: true });
