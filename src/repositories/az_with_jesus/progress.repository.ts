@@ -85,6 +85,30 @@ export class ProgressRepository {
         );
     }
 
+    async updateLearningPosition(params: {
+        studentId: number;
+        letter: string;
+        step: string;
+    }) {
+
+        await pool.query(
+            `
+    UPDATE progress
+    SET
+      current_letter = ?,
+      current_step = ?,
+      updated_at = NOW()
+    WHERE student_id = ?
+    `,
+            [
+                params.letter,
+                params.step,
+                params.studentId
+            ]
+        );
+
+    }
+
     async updateLastStudentMessage(studentId: number, content: string): Promise<void> {
         await pool.query(
             `

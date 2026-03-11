@@ -12,7 +12,9 @@ import {
     getNextLiteracyStep
 } from "./ai/az_with_jesus/literacy-context";
 import { literacyStructuredOutputFormat } from "./ai/az_with_jesus/literacy-output-format";
-import {LiteracyMemoryService} from "./services/az_with_jesus/memory.service";
+import { LiteracyMemoryService } from "./services/az_with_jesus/memory.service";
+import { LearningMetricsService } from "./services/az_with_jesus/learning-metrics.service";
+import { LearningProgressEngineService } from "./services/az_with_jesus/learning-progress-engine.service";
 
 import {serve} from '@hono/node-server'
 import {serveStatic} from '@hono/node-server/serve-static'
@@ -25,6 +27,8 @@ import {config} from "dotenv";
 import path from "path";
 import {generateChatResponse} from "./ai/general/agents";
 import {SessionsRepository} from "./repositories/az_with_jesus/sessions.repository";
+import {ProgressRepository} from "./repositories/az_with_jesus/progress.repository";
+import {getLetterConfig} from "./ai/az_with_jesus/literacy-map";
 
 
 config({ path: path.resolve(process.cwd(), '.env.local') });
@@ -38,6 +42,9 @@ const app = new Hono()
 
 const memoryService = new LiteracyMemoryService();
 const sessionsRepository = new SessionsRepository();
+const progressRepository = new ProgressRepository();
+const metricsService = new LearningMetricsService();
+const engineService = new LearningProgressEngineService();
 
 function sseEvent(event: string, data: unknown) {
     return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
@@ -207,8 +214,12 @@ app.post("/api/ai/chat/az-with-jesus/stream", async (c) => {
 
     const memory = await memoryService.startOrResumeSession(studentId);
 
-    const currentLetter = literacyContext?.letter || memory.progress.current_letter;
-    const currentStep = literacyContext?.currentStep || memory.progress.current_step;
+    const currentLetter = normalizeLetter(
+        literacyContext?.letter || memory.progress.current_letter
+    );
+
+    const currentStep = (literacyContext?.currentStep ||
+        memory.progress.current_step) as LiteracyStep;
 
     const lastUserMessage = [...messages].reverse().find((m) => m.role === "user");
 
@@ -232,11 +243,11 @@ app.post("/api/ai/chat/az-with-jesus/stream", async (c) => {
                 };
 
                 try {
-                    let fallbackStep: LiteracyStep = currentStep as LiteracyStep;
+                    let fallbackStep: LiteracyStep = currentStep;
 
                     const runtimeContext = buildLiteracyContext({
                         letter: currentLetter,
-                        currentStep: currentStep as LiteracyStep,
+                        currentStep,
                         gifSent: literacyContext?.gifSent ?? Boolean(memory.progress.gif_sent),
                         audioSent: literacyContext?.audioSent ?? Boolean(memory.progress.audio_sent)
                     });
@@ -251,7 +262,12 @@ app.post("/api/ai/chat/az-with-jesus/stream", async (c) => {
                         },
                         {
                             role: "developer",
-                            content: [{ type: "input_text", text: buildLiteracyContextText(runtimeContext) }]
+                            content: [
+                                {
+                                    type: "input_text",
+                                    text: buildLiteracyContextText(runtimeContext)
+                                }
+                            ]
                         }
                     ];
 
@@ -262,10 +278,14 @@ app.post("/api/ai/chat/az-with-jesus/stream", async (c) => {
                         });
                     }
 
-                    let previousResponseId: string | undefined = undefined;
+                    let previousResponseId: string | undefined;
                     let nextInput: ResponseInput = baseInput as ResponseInput;
                     let finalResponse: unknown = null;
-                    const collectedResources: Array<{ type: "gif" | "audio"; letter: string; url: string }> = [];
+                    const collectedResources: Array<{
+                        type: "gif" | "audio";
+                        letter: string;
+                        url: string;
+                    }> = [];
 
                     while (true) {
                         const pendingToolCalls: Array<{
@@ -280,7 +300,10 @@ app.post("/api/ai/chat/az-with-jesus/stream", async (c) => {
                             input: nextInput,
                             previous_response_id: previousResponseId,
                             tools: agentConfig.tools,
-                            text: agent === "literacy" ? { format: literacyStructuredOutputFormat } : undefined,
+                            text:
+                                agent === "literacy"
+                                    ? { format: literacyStructuredOutputFormat }
+                                    : undefined,
                             stream: true,
                             store: false
                         });
@@ -333,7 +356,8 @@ app.post("/api/ai/chat/az-with-jesus/stream", async (c) => {
                         }> = [];
 
                         for (const call of pendingToolCalls) {
-                            const args = safeJsonParse<{ letter?: string }>(call.arguments || "{}") || {};
+                            const args =
+                                safeJsonParse<{ letter?: string }>(call.arguments || "{}") || {};
                             const letter = normalizeLetter(args.letter || currentLetter);
 
                             if (call.name === "send_letter_gif") {
@@ -382,6 +406,7 @@ app.post("/api/ai/chat/az-with-jesus/stream", async (c) => {
                     }
 
                     const payload = extractFinalPayload(finalResponse, fallbackStep);
+
                     const finalResponseId =
                         finalResponse &&
                         typeof finalResponse === "object" &&
@@ -421,6 +446,21 @@ app.post("/api/ai/chat/az-with-jesus/stream", async (c) => {
                         }
                     });
 
+                    const metrics = await metricsService.calculate(
+                        studentId,
+                        currentLetter,
+                        payload.step
+                    );
+
+                    const decision = engineService.evaluate(metrics);
+
+                    await progressRepository.updateLearningPosition({
+                        studentId,
+                        letter: decision.nextLetter,
+                        step: decision.nextStep
+                    });
+
+                    send("learning_decision", decision);
                     send("final_payload", payload);
                     send("done", { ok: true });
 
@@ -462,7 +502,6 @@ app.get("/api/ai/chat/az-with-jesus/state", async (c) => {
         return c.json({ error: "Erro ao carregar estado de alfabetização" }, 500);
     }
 });
-
 
 app.post("/api/ai/chat/az-with-jesus/finish", async (c) => {
     const session = await auth.api.getSession({ headers: c.req.header() });
