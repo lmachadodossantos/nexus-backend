@@ -1,9 +1,9 @@
-import { pool } from "../../db/az_with_jesus/mysql";
+import { pool } from "@/db/az_with_jesus/mysql";
 import mysql from "mysql2/promise";
-import { SessionRow } from "../../types/literacy";
+import { SessionRow } from "@/types/literacy";
 
 export class SessionsRepository {
-    async findLastActiveByStudentId(studentId: number): Promise<SessionRow | null> {
+    async findLastActiveByStudentId(studentId: string): Promise<SessionRow | null> {
         const [rows] = await pool.query(
             `
       SELECT *
@@ -21,7 +21,7 @@ export class SessionsRepository {
     }
 
     async create(params: {
-        studentId: number;
+        studentId: string;
         sessionUuid: string;
         letter: string;
         stepStarted: string;

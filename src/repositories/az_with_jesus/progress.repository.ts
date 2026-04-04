@@ -1,9 +1,9 @@
-import { pool } from "../../db/az_with_jesus/mysql";
-import { ProgressRow } from "../../types/literacy";
+import { pool } from "@/db/az_with_jesus/mysql";
+import { ProgressRow } from "@/types/literacy";
 import mysql from "mysql2/promise";
 
 export class ProgressRepository {
-    async findByStudentId(studentId: number): Promise<ProgressRow | null> {
+    async findByStudentId(studentId: string): Promise<ProgressRow | null> {
         const [rows] = await pool.query(
             `SELECT * FROM progress WHERE student_id = ? LIMIT 1`,
             [studentId]
@@ -13,7 +13,7 @@ export class ProgressRepository {
         return data[0] || null;
     }
 
-    async createInitial(studentId: number, letter: string, biblicalReference: string): Promise<number> {
+    async createInitial(studentId: string, letter: string, biblicalReference: string): Promise<number> {
         const [result] = await pool.query(
             `
       INSERT INTO progress (
@@ -36,7 +36,7 @@ export class ProgressRepository {
     }
 
     async updateAfterAssistant(params: {
-        studentId: number;
+        studentId: string;
         currentLetter: string;
         currentStep: string;
         biblicalReference: string;
@@ -86,7 +86,7 @@ export class ProgressRepository {
     }
 
     async updateLearningPosition(params: {
-        studentId: number;
+        studentId: string;
         letter: string;
         step: string;
     }) {
@@ -109,7 +109,7 @@ export class ProgressRepository {
 
     }
 
-    async updateLastStudentMessage(studentId: number, content: string): Promise<void> {
+    async updateLastStudentMessage(studentId: string, content: string): Promise<void> {
         await pool.query(
             `
       UPDATE progress
@@ -124,7 +124,7 @@ export class ProgressRepository {
         );
     }
 
-    async incrementTotalSessions(studentId: number): Promise<void> {
+    async incrementTotalSessions(studentId: string): Promise<void> {
         await pool.query(
             `
       UPDATE progress
@@ -137,7 +137,7 @@ export class ProgressRepository {
         );
     }
 
-    async incrementMasteredLetters(studentId: number): Promise<void> {
+    async incrementMasteredLetters(studentId: string): Promise<void> {
         await pool.query(
             `
       UPDATE progress

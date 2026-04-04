@@ -12,7 +12,7 @@ export const literacyStepSchema = z.enum([
 export type LiteracyStep = z.infer<typeof literacyStepSchema>;
 
 export const literacyContextInputSchema = z.object({
-    letter: z.string().min(1).max(1),
+    letter: z.string().max(1).optional(),
     currentStep: literacyStepSchema.optional(),
     gifSent: z.boolean().optional(),
     audioSent: z.boolean().optional()
@@ -22,7 +22,7 @@ export type LiteracyContextInput = z.infer<typeof literacyContextInputSchema>;
 
 export const chatMessageSchema = z.object({
     role: z.enum(["user", "assistant"]),
-    content: z.string().min(1)
+    content: z.string()
 });
 
 export type ChatMessage = z.infer<typeof chatMessageSchema>;

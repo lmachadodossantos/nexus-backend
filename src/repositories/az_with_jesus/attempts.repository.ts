@@ -1,11 +1,11 @@
 import mysql from "mysql2/promise";
-import { pool } from "../../db/az_with_jesus/mysql";
-import { AttemptType, LiteracyStep } from "../../types/literacy";
+import { pool } from "@/db/az_with_jesus/mysql";
+import { AttemptType, LiteracyStep } from "@/types/literacy";
 
 export class AttemptsRepository {
     async create(params: {
         sessionId: number;
-        studentId: number;
+        studentId: string;
         letter: string;
         step: LiteracyStep;
         attemptType: AttemptType;

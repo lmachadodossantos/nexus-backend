@@ -20,7 +20,7 @@ export type AttemptType =
 
 export interface ProgressRow {
     id: number;
-    student_id: number;
+    student_id: string;
     current_letter: string;
     current_step: LiteracyStep;
     biblical_reference: string;
@@ -46,7 +46,7 @@ export interface ProgressRow {
 
 export interface SessionRow {
     id: number;
-    student_id: number;
+    student_id: string;
     session_uuid: string;
     letter: string;
     step_started: LiteracyStep;
@@ -71,7 +71,7 @@ export interface SessionRow {
 export interface MessageRow {
     id: number;
     session_id: number;
-    student_id: number;
+    student_id: string;
     role: MessageRole;
     letter: string | null;
     step: LiteracyStep | null;
@@ -85,7 +85,7 @@ export interface MessageRow {
 
 export interface LetterProgressRow {
     id: number;
-    student_id: number;
+    student_id: string;
     letter: string;
     biblical_reference: string;
     status: LetterProgressStatus;
@@ -105,7 +105,7 @@ export interface LetterProgressRow {
 export interface AttemptRow {
     id: number;
     session_id: number;
-    student_id: number;
+    student_id: string;
     letter: string;
     step: LiteracyStep;
     attempt_type: AttemptType;
@@ -122,7 +122,7 @@ export interface AttemptRow {
 export interface SessionSummaryRow {
     id: number;
     session_id: number;
-    student_id: number;
+    student_id: string;
     summary_text: string;
     strengths: string | null;
     difficulties: string | null;

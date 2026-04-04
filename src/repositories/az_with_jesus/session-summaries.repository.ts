@@ -1,10 +1,10 @@
-import { pool } from "../../db/az_with_jesus/mysql";
-import {SessionSummaryRow} from "../../types/literacy";
+import { pool } from "@/db/az_with_jesus/mysql";
+import {SessionSummaryRow} from "@/types/literacy";
 
 export class SessionSummariesRepository {
     async upsert(params: {
         sessionId: number;
-        studentId: number;
+        studentId: string;
         summaryText: string;
         strengths?: string | null;
         difficulties?: string | null;

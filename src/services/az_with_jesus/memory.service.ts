@@ -6,7 +6,7 @@ import { LetterProgressRepository } from "../../repositories/az_with_jesus/lette
 import { AttemptsRepository } from "../../repositories/az_with_jesus/attempts.repository";
 import { SessionSummariesRepository } from "../../repositories/az_with_jesus/session-summaries.repository";
 import { LiteracyStep } from "../../types/literacy";
-import { getLetterConfig } from "../../ai/az_with_jesus/literacy-map";
+import { getLetterConfig } from "@/ai/az_with_jesus/literacy-map";
 
 export class LiteracyMemoryService {
     private progressRepo = new ProgressRepository();
@@ -16,7 +16,7 @@ export class LiteracyMemoryService {
     private attemptsRepo = new AttemptsRepository();
     private sessionSummariesRepo = new SessionSummariesRepository();
 
-    async getOrCreateState(studentId: number) {
+    async getOrCreateState(studentId: string) {
         let progress = await this.progressRepo.findByStudentId(studentId);
 
         if (!progress) {
@@ -37,7 +37,7 @@ export class LiteracyMemoryService {
         };
     }
 
-    async getFullState(studentId: number) {
+    async getFullState(studentId: string) {
         const state = await this.getOrCreateState(studentId);
 
         const session = await this.sessionsRepo.findLastActiveByStudentId(studentId);
@@ -107,7 +107,7 @@ export class LiteracyMemoryService {
         };
     }
 
-    async startOrResumeSession(studentId: number) {
+    async startOrResumeSession(studentId: string) {
         const state = await this.getOrCreateState(studentId);
 
         let session = await this.sessionsRepo.findLastActiveByStudentId(studentId);
@@ -145,7 +145,7 @@ export class LiteracyMemoryService {
 
     async saveStudentMessage(params: {
         sessionId: number;
-        studentId: number;
+        studentId: string;
         letter: string;
         step: LiteracyStep;
         content: string;
@@ -165,7 +165,7 @@ export class LiteracyMemoryService {
 
     async saveAssistantTurn(params: {
         sessionId: number;
-        studentId: number;
+        studentId: string;
         letter: string;
         step: LiteracyStep;
         content: string;

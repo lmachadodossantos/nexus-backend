@@ -1,11 +1,11 @@
 import mysql from "mysql2/promise";
-import { pool } from "../../db/az_with_jesus/mysql";
-import { MessageRow, MessageRole, LiteracyStep } from "../../types/literacy";
+import { pool } from "@/db/az_with_jesus/mysql";
+import { MessageRow, MessageRole, LiteracyStep } from "@/types/literacy";
 
 export class MessagesRepository {
     async create(params: {
         sessionId: number;
-        studentId: number;
+        studentId: string;
         role: MessageRole;
         letter?: string | null;
         step?: LiteracyStep | null;
@@ -48,7 +48,7 @@ export class MessagesRepository {
         return (result as mysql.ResultSetHeader).insertId;
     }
 
-    async getRecentByStudent(studentId: number, limit = 12): Promise<MessageRow[]> {
+    async getRecentByStudent(studentId: string, limit = 12): Promise<MessageRow[]> {
         const [rows] = await pool.query(
             `
                 SELECT *

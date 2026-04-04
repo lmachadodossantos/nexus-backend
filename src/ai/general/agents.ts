@@ -1,4 +1,4 @@
-import { openai } from "../openai";
+import { openai } from "@/ai/openai";
 
 interface AgentTools {
     type: "function";

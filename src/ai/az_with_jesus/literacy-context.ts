@@ -1,5 +1,5 @@
-import { LiteracyContextInput, LiteracyStep } from "./literacy-schemas";
-import { getLetterConfig } from "./literacy-map";
+import { LiteracyContextInput, LiteracyStep } from "@/ai/az_with_jesus/literacy-schemas";
+import { getLetterConfig } from "@/ai/az_with_jesus/literacy-map";
 
 export function buildLiteracyContext(input: LiteracyContextInput) {
     const cfg = getLetterConfig(input.letter);

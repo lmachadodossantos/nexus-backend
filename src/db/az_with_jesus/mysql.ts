@@ -4,10 +4,10 @@ import path from "path";
 config({ path: path.resolve(process.cwd(), '.env.local') });
 
 export const pool = mysql.createPool({
-    host: process.env.DB_HOST,
-    port: Number(process.env.DB_PORT || 3306),
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
+    host: process.env.DB_MYSQL_HOST,
+    port: Number(process.env.DB_MYSQL_PORT || 3306),
+    user: process.env.DB_MYSQL_USER,
+    password: process.env.DB_MYSQL_PASSWORD,
     database: 'db_az_with_jesus',
     waitForConnections: true,
     connectionLimit: 10,

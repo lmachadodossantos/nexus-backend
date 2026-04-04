@@ -1,5 +1,5 @@
-import { pool } from "../../db/az_with_jesus/mysql";
-import { LiteracyStep } from "../../types/literacy";
+import { pool } from "@/db/az_with_jesus/mysql";
+import { LiteracyStep } from "@/types/literacy";
 
 export interface LearningMetrics {
     letter: string;
@@ -13,7 +13,7 @@ export interface LearningMetrics {
 
 export class LearningMetricsService {
 
-    async calculate(studentId: number, letter: string, step: LiteracyStep): Promise<LearningMetrics> {
+    async calculate(studentId: string, letter: string, step: LiteracyStep): Promise<LearningMetrics> {
 
         const [rows] = await pool.query(
             `

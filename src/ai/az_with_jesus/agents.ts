@@ -1,5 +1,5 @@
 import type { ResponseCreateParams } from "openai/resources/responses/responses";
-import { LITERACY_TOOLS } from "./literacy-tools";
+import { LITERACY_TOOLS } from "@/ai/az_with_jesus/literacy-tools";
 
 export type ResponseTool = NonNullable<ResponseCreateParams["tools"]>[number];
 

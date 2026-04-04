@@ -1,4 +1,4 @@
-import { LiteracyStep } from "../../types/literacy";
+import { LiteracyStep } from "@/types/literacy";
 import { LearningMetrics } from "./learning-metrics.service";
 
 export type LearningDecisionType =

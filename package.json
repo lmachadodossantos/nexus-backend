@@ -19,7 +19,8 @@
     "hono": "^4.11.4",
     "livekit-server-sdk": "^2.15.0",
     "mysql2": "^3.19.1",
-    "openai": "^6.16.0"
+    "openai": "^6.16.0",
+    "vitest": "^4.0.18"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",

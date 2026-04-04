@@ -1,8 +1,8 @@
-import { pool } from "../../db/az_with_jesus/mysql";
-import { LetterProgressRow } from "../../types/literacy";
+import { pool } from "@/db/az_with_jesus/mysql";
+import { LetterProgressRow } from "@/types/literacy";
 
 export class LetterProgressRepository {
-    async findByStudentAndLetter(studentId: number, letter: string): Promise<LetterProgressRow | null> {
+    async findByStudentAndLetter(studentId: string, letter: string): Promise<LetterProgressRow | null> {
         const [rows] = await pool.query(
             `
                 SELECT *
@@ -19,7 +19,7 @@ export class LetterProgressRepository {
     }
 
     async createIfNotExists(params: {
-        studentId: number;
+        studentId: string;
         letter: string;
         biblicalReference: string;
     }): Promise<void> {
@@ -41,7 +41,7 @@ export class LetterProgressRepository {
     }
 
     async updateProgress(params: {
-        studentId: number;
+        studentId: string;
         letter: string;
         currentStep: string;
         status?: "not_started" | "in_progress" | "review" | "mastered";

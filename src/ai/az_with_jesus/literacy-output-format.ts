@@ -16,7 +16,6 @@ export const literacyStructuredOutputFormat = {
                 enum: ["abertura", "som", "palavras", "frase", "mini_exercicio", "encerramento"]
             },
             shouldRepeatCurrentStep: { type: "boolean" },
-            encouragement: { type: "string" }
         },
         required: ["text", "step", "suggestedNextStep", "shouldRepeatCurrentStep"]
     }
