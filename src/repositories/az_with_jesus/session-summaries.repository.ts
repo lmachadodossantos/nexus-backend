@@ -12,22 +12,21 @@ export class SessionSummariesRepository {
     }): Promise<void> {
         await pool.query(
             `
-      INSERT INTO session_summaries (
-        session_id,
-        student_id,
-        summary_text,
-        strengths,
-        difficulties,
-        recommended_next_step
-      )
-      VALUES (?, ?, ?, ?, ?, ?)
-      ON DUPLICATE KEY UPDATE
-        summary_text = VALUES(summary_text),
-        strengths = VALUES(strengths),
-        difficulties = VALUES(difficulties),
-        recommended_next_step = VALUES(recommended_next_step),
-        updated_at = NOW()
-      `,
+                INSERT INTO session_summaries (
+                    session_id,
+                    student_id,
+                    summary_text,
+                    strengths,
+                    difficulties,
+                    recommended_next_step
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+                    ON DUPLICATE KEY UPDATE
+                                         summary_text = VALUES(summary_text),
+                                         strengths = VALUES(strengths),
+                                         difficulties = VALUES(difficulties),
+                                         recommended_next_step = VALUES(recommended_next_step)
+            `,
             [
                 params.sessionId,
                 params.studentId,
@@ -42,11 +41,11 @@ export class SessionSummariesRepository {
     async findBySessionId(sessionId: number): Promise<SessionSummaryRow | null> {
         const [rows] = await pool.query(
             `
-      SELECT *
-      FROM session_summaries
-      WHERE session_id = ?
-      LIMIT 1
-      `,
+                SELECT *
+                FROM session_summaries
+                WHERE session_id = ?
+                    LIMIT 1
+            `,
             [sessionId]
         );
 

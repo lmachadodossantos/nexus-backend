@@ -20,5 +20,8 @@ export const auth = betterAuth({
     logger: {
         level: "debug",
         disabled: false
+    },
+    advanced: {
+        disableCSRFCheck: true
     }
 });

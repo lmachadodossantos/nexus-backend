@@ -145,14 +145,18 @@ streamRoute.post("/", async (c) => {
                                     ? { format: literacyStructuredOutputFormat }
                                     : undefined,
                             stream: true,
-                            store: false
+                            store: true
                         });
 
                         finalResponse = null;
 
                         for await (const event of stream) {
                             if (event.type === "response.output_text.delta") {
-                                send("text_delta", { delta: event.delta });
+                                // Structured output agents (literacy) stream raw JSON deltas,
+                                // not readable text. The final text arrives via final_payload.
+                                if (agent !== "literacy") {
+                                    send("text_delta", { delta: event.delta });
+                                }
                                 continue;
                             }
 
