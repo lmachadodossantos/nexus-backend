@@ -27,7 +27,7 @@ app.use(
 );
 
 app.use("*", logger());
-app.use("/assets/letters/audio/*", serveStatic({ root: "./" }));
+app.use("/assets/letters/audios/*", serveStatic({ root: "./" }));
 app.use("/assets/letters/gifs/*", serveStatic({ root: "./" }));
 
 app.get("/", (c) => c.json({ status: "online", database: "sqlite" }));

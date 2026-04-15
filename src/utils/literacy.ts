@@ -1,6 +1,9 @@
 import { literacyAssistantPayloadSchema, type LiteracyStep } from "@/ai/az_with_jesus/literacy-schemas";
 import { getNextLiteracyStep } from "@/ai/az_with_jesus/literacy-context";
+import { config } from "dotenv";
+import path from "path";
 
+config({ path: path.resolve(process.cwd(), ".env.local") });
 export function sseEvent(event: string, data: unknown) {
     return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 }
@@ -10,11 +13,11 @@ export function normalizeLetter(letter: string) {
 }
 
 export function buildGifUrl(letter: string) {
-    return `/assets/literacy/gifs/${letter}.gif`;
+    return process.env.URL_FILES + `/assets/letters/gifs/${letter}.gif`;
 }
 
 export function buildAudioUrl(letter: string) {
-    return `/assets/literacy/audios/${letter}.mp3`;
+    return process.env.URL_FILES + `/assets/letters/audios/${letter}.mp3`;
 }
 
 export function safeJsonParse<T = unknown>(value: string): T | null {
