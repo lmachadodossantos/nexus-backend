@@ -9,6 +9,8 @@ export interface RealtimeAgentConfig {
     output_audio_format: "pcm16" | "g711_ulaw" | "g711_alaw";
     input_audio_transcription: { model: string } | null;
     turn_detection: null;
+    /** Velocidade da fala: 1.0 = normal, 0.8 = 20% mais lento. Range: 0.25–1.5 */
+    speed?: number;
 }
 
 const STORYTELLER_INSTRUCTIONS = `
@@ -168,6 +170,7 @@ export const REALTIME_AGENTS: Record<string, RealtimeAgentConfig> = {
         input_audio_format: "pcm16",
         output_audio_format: "pcm16",
         input_audio_transcription: { model: "gpt-4o-transcribe" },
-        turn_detection: null
+        turn_detection: null,
+        speed: 1.00
     }
 };
