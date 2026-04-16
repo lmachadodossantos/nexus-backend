@@ -4,8 +4,12 @@ export const literacyStepSchema = z.enum([
     "abertura",
     "som",
     "palavras",
-    "frase",
-    "mini_exercicio",
+    "aquecimento",
+    "bastao_maiuscula",
+    "bastao_minuscula",
+    "cursiva_maiuscula",
+    "cursiva_minuscula",
+    "desafio",
     "encerramento"
 ]);
 
@@ -48,6 +52,7 @@ export type LiteracyAssistantPayload = z.infer<typeof literacyAssistantPayloadSc
 export const processedResourceSchema = z.object({
     type: z.enum(["gif", "audio"]),
     letter: z.string().min(1).max(1),
+    variant: z.string().optional(),
     url: z.string().min(1)
 });
 

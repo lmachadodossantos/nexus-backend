@@ -124,6 +124,7 @@ streamRoute.post("/", async (c) => {
                     const collectedResources: Array<{
                         type: "gif" | "audio";
                         letter: string;
+                        variant?: string;
                         url: string;
                     }> = [];
 
@@ -200,11 +201,12 @@ streamRoute.post("/", async (c) => {
 
                         for (const call of pendingToolCalls) {
                             const args =
-                                safeJsonParse<{ letter?: string }>(call.arguments || "{}") || {};
+                                safeJsonParse<{ letter?: string; variant?: string }>(call.arguments || "{}") || {};
                             const letter = normalizeLetter(args.letter || currentLetter);
 
                             if (call.name === "send_letter_gif") {
-                                const resource = { type: "gif" as const, letter, url: buildGifUrl(letter) };
+                                const variant = args.variant || "UPPERCASE_PRINT";
+                                const resource = { type: "gif" as const, letter, variant, url: buildGifUrl(letter, variant) };
                                 collectedResources.push(resource);
                                 send("resource", resource);
                                 toolOutputs.push({

@@ -2,8 +2,12 @@ export type LiteracyStep =
     | "abertura"
     | "som"
     | "palavras"
-    | "frase"
-    | "mini_exercicio"
+    | "aquecimento"
+    | "bastao_maiuscula"
+    | "bastao_minuscula"
+    | "cursiva_maiuscula"
+    | "cursiva_minuscula"
+    | "desafio"
     | "encerramento";
 
 export type ProgressStatus = "active" | "paused" | "completed";

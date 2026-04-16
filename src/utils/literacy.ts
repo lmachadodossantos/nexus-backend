@@ -12,8 +12,8 @@ export function normalizeLetter(letter: string) {
     return (letter || "").trim().toUpperCase().slice(0, 1);
 }
 
-export function buildGifUrl(letter: string) {
-    return process.env.URL_FILES + `/assets/letters/gifs/${letter}.gif`;
+export function buildGifUrl(letter: string, variant: string) {
+    return process.env.URL_FILES + `/assets/letters/gifs/${letter}_${variant}.gif`;
 }
 
 export function buildAudioUrl(letter: string) {

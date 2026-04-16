@@ -19,9 +19,13 @@ function getNextStep(step: LiteracyStep): LiteracyStep {
     switch (step) {
         case "abertura": return "som";
         case "som": return "palavras";
-        case "palavras": return "frase";
-        case "frase": return "mini_exercicio";
-        case "mini_exercicio": return "encerramento";
+        case "palavras": return "aquecimento";
+        case "aquecimento": return "bastao_maiuscula";
+        case "bastao_maiuscula": return "bastao_minuscula";
+        case "bastao_minuscula": return "cursiva_maiuscula";
+        case "cursiva_maiuscula": return "cursiva_minuscula";
+        case "cursiva_minuscula": return "desafio";
+        case "desafio": return "encerramento";
         default: return "encerramento";
     }
 
@@ -32,9 +36,13 @@ function getPreviousStep(step: LiteracyStep): LiteracyStep {
     switch (step) {
         case "som": return "abertura";
         case "palavras": return "som";
-        case "frase": return "palavras";
-        case "mini_exercicio": return "frase";
-        case "encerramento": return "mini_exercicio";
+        case "aquecimento": return "palavras";
+        case "bastao_maiuscula": return "aquecimento";
+        case "bastao_minuscula": return "bastao_maiuscula";
+        case "cursiva_maiuscula": return "bastao_minuscula";
+        case "cursiva_minuscula": return "cursiva_maiuscula";
+        case "desafio": return "cursiva_minuscula";
+        case "encerramento": return "desafio";
         default: return "abertura";
     }
 

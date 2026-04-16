@@ -10,6 +10,7 @@ import { authRoutes } from "./routes/auth.routes";
 import { chatRoutes } from "./routes/chat.routes";
 import { azWithJesusRoutes } from "./routes/az-with-jesus";
 import { livekitRoutes } from "./routes/livekit.routes";
+import { realtimeSessionRoute } from "./routes/realtime/session.route";
 
 config({ path: path.resolve(process.cwd(), ".env.local") });
 
@@ -36,6 +37,7 @@ app.route("/api/auth", authRoutes);
 app.route("/api/ai/chat", chatRoutes);
 app.route("/api/ai/chat/az-with-jesus", azWithJesusRoutes);
 app.route("/api/live-kit", livekitRoutes);
+app.route("/api/ai/realtime/session", realtimeSessionRoute);
 
 if (process.env.NODE_ENV !== "test") {
     const port = 3000;

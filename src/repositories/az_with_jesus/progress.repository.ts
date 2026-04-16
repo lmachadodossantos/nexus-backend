@@ -97,6 +97,8 @@ export class ProgressRepository {
     SET
       current_letter = ?,
       current_step = ?,
+      gif_sent = 0,
+      audio_sent = 0,
       updated_at = NOW()
     WHERE student_id = ?
     `,
